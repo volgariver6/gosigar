@@ -261,3 +261,14 @@ func ProcessCgroupPaths(rootfsMountpoint string, pid int) (map[string]string, er
 
 	return paths, sc.Err()
 }
+
+func Exists(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
