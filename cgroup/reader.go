@@ -120,12 +120,16 @@ func (r *Reader) GetStatsForProcess(pid int) (*Stats, error) {
 		if r.cgroupsHierarchyOverride != "" {
 			path = r.cgroupsHierarchyOverride
 		}
+		fullPath := filepath.Join(subsystemMount, path)
+		if !Exists(fullPath) {
+			fullPath = subsystemMount
+		}
 		mounts[interestedSubsystem] = mount{
 			subsystem:  interestedSubsystem,
 			mountpoint: subsystemMount,
 			id:         id,
 			path:       path,
-			fullPath:   filepath.Join(subsystemMount, path),
+			fullPath:   fullPath,
 		}
 	}
 
