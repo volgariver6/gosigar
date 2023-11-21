@@ -1,6 +1,7 @@
 package cgroup
 
 import (
+	"log"
 	"path/filepath"
 )
 
@@ -130,6 +131,8 @@ func (r *Reader) GetStatsForProcess(pid int) (*Stats, error) {
 	}
 
 	stats := Stats{Metadata: getCommonCgroupMetadata(mounts)}
+
+	log.Printf("liubo: mount info: %+v", mounts)
 
 	// Collect stats from each cgroup subsystem associated with the task.
 	if mount, found := mounts["blkio"]; found {
