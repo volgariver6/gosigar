@@ -166,3 +166,28 @@ func memoryStats(path string, mem *MemorySubsystem) error {
 
 	return sc.Err()
 }
+
+func memoryDataV1(path, prefix string, data *MemoryData) error {
+	var err error
+	data.Usage, err = parseUintFromFile(path, prefix+".usage_in_bytes")
+	if err != nil {
+		return err
+	}
+
+	data.MaxUsage, err = parseUintFromFile(path, prefix+".max_usage_in_bytes")
+	if err != nil {
+		return err
+	}
+
+	data.Limit, err = parseUintFromFile(path, prefix+".limit_in_bytes")
+	if err != nil {
+		return err
+	}
+
+	data.FailCount, err = parseUintFromFile(path, prefix+".failcnt")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
