@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/elastic/gosigar/sys/linux"
@@ -46,6 +48,15 @@ func (cpuacct *CPUAccountingSubsystem) get(path string) error {
 	return nil
 }
 
+func (cpuacct *CPUAccountingSubsystem) getV2(path string) error {
+	// In cgroup v2, we cannot get total nanos, so just get user/system nanos.
+	// The total nanos is calculated by user.
+	if err := cpuacctStatV2(path, cpuacct); err != nil {
+		return err
+	}
+	return nil
+}
+
 func cpuacctStat(path string, cpuacct *CPUAccountingSubsystem) error {
 	f, err := os.Open(filepath.Join(path, "cpuacct.stat"))
 	if err != nil {
@@ -71,6 +82,39 @@ func cpuacctStat(path string, cpuacct *CPUAccountingSubsystem) error {
 	}
 
 	return sc.Err()
+}
+
+func cpuacctStatV2(path string, cpuacct *CPUAccountingSubsystem) error {
+	f, err := os.Open(filepath.Join(path, "cpu.stat"))
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := sc.Text()
+		fields := strings.Split(line, " ")
+		if len(fields) != 2 || (string(fields[0]) != "user_usec" && string(fields[0]) != "system_usec") {
+			continue
+		}
+		trimmed := strings.TrimSpace(fields[1])
+		if fields[0] == "user_usec" {
+			value, err := strconv.ParseUint(trimmed, 10, 64)
+			if err != nil {
+				return err
+			}
+			// Convert to nanos.
+			cpuacct.Stats.UserNanos = value * 1000
+		} else {
+			value, err := strconv.ParseUint(trimmed, 10, 64)
+			if err != nil {
+				return err
+			}
+			// Convert to nanos.
+			cpuacct.Stats.SystemNanos = value * 1000
+		}
+	}
+	return nil
 }
 
 func cpuacctUsage(path string, cpuacct *CPUAccountingSubsystem) error {
