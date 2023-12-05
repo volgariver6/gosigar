@@ -2,8 +2,11 @@ package cgroup
 
 import (
 	"bufio"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // CPUSubsystem contains metrics and limits from the "cpu" subsystem. This
@@ -72,6 +75,13 @@ func (cpu *CPUSubsystem) get(path string) error {
 	return nil
 }
 
+func (cpu *CPUSubsystem) getV2(path string) error {
+	if err := cpuCFSV2(path, cpu); err != nil {
+		return err
+	}
+	return nil
+}
+
 func cpuStat(path string, cpu *CPUSubsystem) error {
 	f, err := os.Open(filepath.Join(path, "cpu.stat"))
 	if err != nil {
@@ -120,6 +130,38 @@ func cpuCFS(path string, cpu *CPUSubsystem) error {
 		return err
 	}
 
+	return nil
+}
+
+func cpuCFSV2(path string, cpu *CPUSubsystem) error {
+	fp := filepath.Join(path, "cpu.max")
+	f, err := os.Open(fp)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+	contents, err := io.ReadAll(f)
+	if err != nil {
+		return err
+	}
+	fields := strings.Fields(string(contents))
+	if len(fields) > 2 || len(fields) == 0 {
+		return fmt.Errorf("error format of file %s: %s", fp, contents)
+	}
+	if fields[0] == "max" {
+		cpu.CFS.QuotaMicros = 0
+	} else {
+		cpu.CFS.QuotaMicros, err = parseUint([]byte(fields[0]))
+		if err != nil {
+			return err
+		}
+	}
+	if len(fields) == 2 {
+		cpu.CFS.PeriodMicros, err = parseUint([]byte(fields[1]))
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
