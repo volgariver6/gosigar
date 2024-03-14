@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- darwin: Fix checkptr error in `(*Mem).Get` for Go 1.22.
+
 ### Changed
 
 ### Deprecated
