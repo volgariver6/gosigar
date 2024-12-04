@@ -396,7 +396,7 @@ func getCgroupVersion(fields [][]byte, controller string) (int, bool) {
 	}
 	pos++
 	if bytes.Equal(fields[pos], []byte("cgroup")) &&
-		bytes.Contains(fields[pos+2], []byte(controller)) {
+		controllerCompare(string(fields[pos+2]), controller, true) {
 		return 1, true
 	} else if bytes.Equal(fields[pos], []byte("cgroup2")) {
 		return 2, true
@@ -473,7 +473,7 @@ func processControllerPath(cgroupFilePath string, controller string) (string, er
 		}
 		if fields[0] == "0" && fields[1] == "" {
 			unifiedPath = fields[2]
-		} else if fields[1] == controller {
+		} else if controllerCompare(fields[1], controller, false) {
 			return fields[2], nil
 		}
 	}
@@ -530,4 +530,27 @@ func readInt64Value(root, filename, key string) (int64, error) {
 		}
 	}
 	return value, nil
+}
+
+func controllerCompare(content, controller string, contain bool) bool {
+	if content == "" || controller == "" {
+		return false
+	}
+	controllerItems := strings.Split(controller, ",")
+	contentItems := strings.Split(content, ",")
+	if !contain {
+		if len(contentItems) != len(controllerItems) {
+			return false
+		}
+	}
+	contentItemMap := make(map[string]struct{}, len(contentItems))
+	for _, contentItem := range contentItems {
+		contentItemMap[contentItem] = struct{}{}
+	}
+	for _, controllerItem := range controllerItems {
+		if _, ok := contentItemMap[controllerItem]; !ok {
+			return false
+		}
+	}
+	return true
 }

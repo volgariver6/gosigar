@@ -76,3 +76,103 @@ func TestReaderGetStatsHierarchyOverride(t *testing.T) {
 	require.NotNil(t, stats.CPU)
 	assert.NotZero(t, stats.CPU.CFS.Shares)
 }
+
+func TestControllerCompare(t *testing.T) {
+	cases := []struct {
+		content    string
+		controller string
+		contain    bool
+		expected   bool
+	}{
+		{
+			content:    "cpu",
+			controller: "cpu",
+			contain:    true,
+			expected:   true,
+		},
+		{
+			content:    "nothing",
+			controller: "cpu",
+			contain:    true,
+			expected:   false,
+		},
+		{
+			content:    "rw,seclabel,cpuacct,cpu",
+			controller: "cpuacct,cpu",
+			contain:    true,
+			expected:   true,
+		},
+		{
+			content:    "rw,seclabel,cpuacct,cpu",
+			controller: "cpu,cpuacct",
+			contain:    true,
+			expected:   true,
+		},
+		{
+			content:    "cpuacct,cpu",
+			controller: "cpu,cpuacct",
+			contain:    true,
+			expected:   true,
+		},
+		{
+			content:    "cpuacct",
+			controller: "cpu,cpuacct",
+			contain:    true,
+			expected:   false,
+		},
+		{
+			content:    "cpuacct,cpu",
+			controller: "cpuacct",
+			contain:    true,
+			expected:   true,
+		},
+		{
+			content:    "cpuacct",
+			controller: "cpuacct",
+			contain:    false,
+			expected:   true,
+		},
+		{
+			content:    "cpuacct,cpu",
+			controller: "cpuacct,cpu",
+			contain:    false,
+			expected:   true,
+		},
+		{
+			content:    "cpuacct,cpu",
+			controller: "cpu,cpuacct",
+			contain:    false,
+			expected:   true,
+		},
+		{
+			content:    "cpuacct,cpu",
+			controller: "cpuacct,cpu1",
+			contain:    false,
+			expected:   false,
+		},
+		{
+			content:    "cpuacct,cpu1",
+			controller: "cpuacct,cpu",
+			contain:    false,
+			expected:   false,
+		},
+		{
+			content:    "cpuacct,cpuacct",
+			controller: "cpu,cpuacct",
+			contain:    false,
+			expected:   false,
+		},
+		{
+			content:    "cpuacct,cpuacct",
+			controller: "cpuacct",
+			contain:    false,
+			expected:   false,
+		},
+	}
+
+	for i, c := range cases {
+		if c.expected != controllerCompare(c.content, c.controller, c.contain) {
+			t.Errorf("%d: expected %v, got %v", i, c.expected, controllerCompare(c.content, c.controller, c.contain))
+		}
+	}
+}
